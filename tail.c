@@ -121,6 +121,10 @@ readLastLines(FILE *f, int lines) {
 	int pos = ftell(f);
 	int size = endpos-pos;
 	char *buffer = malloc(size);
+	if (buffer == NULL) {
+		fprintf(stderr, "Out of memory\n");
+		exit(1);
+	}
 	fread(buffer, size, 1, f);
 	fwrite(buffer, size, 1, stdout);
 }
