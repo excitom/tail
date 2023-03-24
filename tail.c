@@ -19,7 +19,7 @@ char path[256];
 void
 readContinuously(FILE *f) {
 	int maxLen = 255;
-	char *p = malloc(255);
+	char *p = malloc(256);
 	while (1) {
 		char *s = fgets(p, maxLen, f);
 		if (feof(f)) {
