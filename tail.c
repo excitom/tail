@@ -16,6 +16,58 @@ int watch = 0;
 int lines = 0;
 char path[256];
 
+void readContinuously(FILE *f);
+void readLastLines(FILE *f, int lines);
+
+int main (int argc, char **argv) {
+	int c;
+	while ((c = getopt(argc, argv, "fhn:")) != EOF)
+		switch(c) {
+			case 'f':
+				watch = 1;
+				break;
+			case 'n':
+				lines = atoi(optarg);
+				break;
+			case 'h':
+				printf("Tom's tail command\n");
+				printf("Options are:\n");
+				printf("	-f = watch the file continuously\n");
+				printf("	-n = display the last N lines\n");
+				printf("\n");
+				exit(0);
+			default:
+				printf("Unrecognized option %c ignored\n", (char)c);
+				break;
+
+		}
+
+	FILE *f;
+	if (optind < argc) {
+		if (strlen(argv[optind]) > 255) {
+			printf("File path too long\n");
+			exit(1);
+		}
+		strcpy(path, argv[optind]);
+		f = fopen(path, "r");
+		if (f == NULL) {
+			fprintf(stderr, "x %s", path);
+			perror("Can't open file ");
+			exit(1);
+		}
+	} else {
+		// no path name, assume STDIN
+		f = stdin;
+	}
+	
+	if (watch) {
+		readContinuously(f);
+	}
+	else if (lines > 0) {
+		readLastLines(f, lines);
+	}
+}
+
 void
 readContinuously(FILE *f) {
 	int maxLen = 255;
@@ -71,53 +123,4 @@ readLastLines(FILE *f, int lines) {
 	char *buffer = malloc(size);
 	fread(buffer, size, 1, f);
 	fwrite(buffer, size, 1, stdout);
-}
-
-int main (int argc, char **argv) {
-	int c;
-	while ((c = getopt(argc, argv, "fhn:")) != EOF)
-		switch(c) {
-			case 'f':
-				watch = 1;
-				break;
-			case 'n':
-				lines = atoi(optarg);
-				break;
-			case 'h':
-				printf("Tom's tail command\n");
-				printf("Options are:\n");
-				printf("	-f = watch the file continuously\n");
-				printf("	-n = display the last N lines\n");
-				printf("\n");
-				exit(0);
-			default:
-				printf("Unrecognized option %c ignored\n", (char)c);
-				break;
-
-		}
-
-	FILE *f;
-	if (optind < argc) {
-		if (strlen(argv[optind]) > 255) {
-			printf("File path too long\n");
-			exit(1);
-		}
-		strcpy(path, argv[optind]);
-		f = fopen(path, "r");
-		if (f == NULL) {
-			fprintf(stderr, "x %s", path);
-			perror("Can't open file ");
-			exit(1);
-		}
-	} else {
-		// no path name, assume STDIN
-		f = stdin;
-	}
-	
-	if (watch) {
-		readContinuously(f);
-	}
-	else if (lines > 0) {
-		readLastLines(f, lines);
-	}
 }
