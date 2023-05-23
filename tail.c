@@ -14,20 +14,36 @@
 
 int watch = 0;
 int lines = 0;
+char param[256] = "";
 char path[256];
+char ln[2];
 
 void readContinuously(FILE *f);
 void readLastLines(FILE *f, int lines);
 
 int main (int argc, char **argv) {
+	ln[1] = '\0';
 	int c;
-	while ((c = getopt(argc, argv, "fhn:")) != EOF)
+	while ((c = getopt(argc, argv, "0123456789fhn:")) != EOF)
 		switch(c) {
 			case 'f':
 				watch = 1;
 				break;
 			case 'n':
 				lines = atoi(optarg);
+				break;
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				ln[0] = c;
+				strcat(param, ln);
 				break;
 			case 'h':
 				printf("Tom's tail command\n");
@@ -41,6 +57,9 @@ int main (int argc, char **argv) {
 				break;
 
 		}
+	if ((lines == 0) && (strlen(param) > 0)) {
+		lines = atoi(param);
+	}
 
 	FILE *f;
 	if (optind < argc) {
