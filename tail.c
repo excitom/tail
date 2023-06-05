@@ -18,8 +18,8 @@ char param[256] = "";
 char path[256];
 char ln[2];
 
-void readContinuously(FILE *f);
-void readLastLines(FILE *f, int lines);
+void readContinuously(int f);
+void readLastLines(int f, int lines);
 
 int main (int argc, char **argv) {
 	ln[1] = '\0';
@@ -61,22 +61,22 @@ int main (int argc, char **argv) {
 		lines = atoi(param);
 	}
 
-	FILE *f;
+	int f;
 	if (optind < argc) {
 		if (strlen(argv[optind]) > 255) {
 			printf("File path too long\n");
 			exit(1);
 		}
 		strcpy(path, argv[optind]);
-		f = fopen(path, "r");
-		if (f == NULL) {
+		f = open(path, O_RDONLY);
+		if (f == -1) {
 			fprintf(stderr, "x %s", path);
 			perror("Can't open file ");
 			exit(1);
 		}
 	} else {
 		// no path name, assume STDIN
-		f = stdin;
+		f = STDIN_FILENO;
 	}
 	
 	if (watch) {
@@ -88,62 +88,57 @@ int main (int argc, char **argv) {
 }
 
 void
-readContinuously(FILE *f) {
+readContinuously(int f) {
 	int maxLen = 255;
 	char *p = malloc(256);
 	while (1) {
-		char *s = fgets(p, maxLen, f);
-		if (feof(f)) {
-			// last get returned < maxLen ?
-			if (s != NULL) {
-				fputs(p, stdout);
-			}
-			sleep(2);
-			clearerr(f);		// reset EOF
-		} else {
+		ssize_t s = read(f, p, maxLen);
+		if (s != -1) {
 			fputs(p, stdout);
 		}
+		sleep(2);
 	}
 }
 
 void
-readLastLines(FILE *f, int lines) {
-	if (fseek(f, 0, SEEK_END) == -1) {
+readLastLines(int f, int lines) {
+	int endpos = lseek(f, 0, SEEK_END);
+	if (endpos == -1) {
 		perror("fseek: ");
 		exit(1);
 	}
-	int endpos = ftell(f);
 	int count = 0;
-	int c = 0;
+	unsigned char c;
 	while( count <= lines ) {
-		if(fseek(f, -1, SEEK_CUR) == -1) {
+		if(lseek(f, -1, SEEK_CUR) == -1) {
 			break;
 		}
-		c = fgetc(f);
-		if (c == EOF) {
+		if (read(f, &c, 1) == -1) {
 			perror("No input");
 			exit(1);
 		}
 		if (c == '\n') {
 			count++;
 		}
-		if(fseek(f, -1, SEEK_CUR) == -1) {
+		if(lseek(f, -1, SEEK_CUR) == -1) {
 			break;
 		}
 	}
 	// if the last character read was not a newline,
 	// then the -n parameter is more than the number of lines
 	// in the file.
+	int pos;
 	if (c == '\n') {
-		fseek(f, 1, SEEK_CUR);		// skip leading newline
+		pos = lseek(f, 1, SEEK_CUR);		// skip leading newline
+	} else {
+		pos = lseek(f, 0, SEEK_CUR);
 	}
-	int pos = ftell(f);
 	int size = endpos-pos;
 	char *buffer = malloc(size);
 	if (buffer == NULL) {
 		fprintf(stderr, "Out of memory\n");
 		exit(1);
 	}
-	fread(buffer, size, 1, f);
+	read(f, buffer, size);
 	fwrite(buffer, size, 1, stdout);
 }
